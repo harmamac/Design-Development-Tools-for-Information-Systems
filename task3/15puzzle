@@ -1,0 +1,133 @@
+
+board=(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 0)
+empty_pos=15
+
+shuffle_board() {
+    local moves=100
+    for ((i=0; i<moves; i++)); do
+        local valid_moves=()
+        local row=$((empty_pos / 4))
+        local col=$((empty_pos % 4))
+        
+        if ((row > 0)); then valid_moves+=($((empty_pos - 4))); fi
+        if ((row < 3)); then valid_moves+=($((empty_pos + 4))); fi
+        if ((col > 0)); then valid_moves+=($((empty_pos - 1))); fi
+        if ((col < 3)); then valid_moves+=($((empty_pos + 1))); fi
+        
+        local rand_idx=$((RANDOM % ${#valid_moves[@]}))
+        local swap_pos=${valid_moves[$rand_idx]}
+        
+        board[$empty_pos]=${board[$swap_pos]}
+        board[$swap_pos]=0
+        empty_pos=$swap_pos
+    done
+}
+
+display_board() {
+    echo
+    echo "+-------------------+"
+    for ((row=0; row<4; row++)); do
+        echo -n "|"
+        for ((col=0; col<4; col++)); do
+            local idx=$((row * 4 + col))
+            local val=${board[$idx]}
+            if ((val == 0)); then
+                printf " %-2s |" ""
+            else
+                printf " %-2s |" "$val"
+            fi
+        done
+        echo
+        if ((row < 3)); then
+            echo "|-------------------|"
+        fi
+    done
+    echo "+-------------------+"
+    echo
+}
+
+get_valid_moves() {
+    local row=$((empty_pos / 4))
+    local col=$((empty_pos % 4))
+    local moves=()
+    
+    if ((row > 0)); then moves+=(${board[$((empty_pos - 4))]}); fi
+    if ((row < 3)); then moves+=(${board[$((empty_pos + 4))]}); fi
+    if ((col > 0)); then moves+=(${board[$((empty_pos - 1))]}); fi
+    if ((col < 3)); then moves+=(${board[$((empty_pos + 1))]}); fi
+    
+    echo "${moves[@]}"
+}
+
+make_move() {
+    local num=$1
+    local valid_moves=($(get_valid_moves))
+    
+    for move in "${valid_moves[@]}"; do
+        if ((move == num)); then
+            for ((i=0; i<16; i++)); do
+                if ((board[i] == num)); then
+                    board[empty_pos]=$num
+                    board[i]=0
+                    empty_pos=$i
+                    return 0
+                fi
+            done
+        fi
+    done
+    return 1
+}
+
+is_solved() {
+    for ((i=0; i<15; i++)); do
+        if ((board[i] != i + 1)); then
+            return 1
+        fi
+    done
+    if ((board[15] != 0)); then
+        return 1
+    fi
+    return 0
+}
+
+shuffle_board
+move_count=1
+
+while true; do
+    echo "Ход № $move_count"
+    display_board
+    
+    read -p "Ваш ход (q - выход): " input
+    
+    if [[ "$input" == "q" ]]; then
+        exit 0
+    fi
+    
+    if ! [[ "$input" =~ ^[0-9]+$ ]] || ((input < 1 || input > 15)); then
+        continue
+    fi
+    
+    if make_move "$input"; then
+        if is_solved; then
+            echo
+            echo "Вы собрали головоломку за $move_count ходов."
+            display_board
+            exit 0
+        fi
+        ((move_count++))
+    else
+        echo
+        echo "Ход № $move_count"
+        display_board
+        echo "Неверный ход!"
+        echo "Невозможно костяшку $input передвинуть на пустую ячейку."
+        valid_arr=($(get_valid_moves))
+        echo -n "Можно выбрать: "
+        for ((i=0; i<${#valid_arr[@]}; i++)); do
+            if ((i > 0)); then echo -n ", "; fi
+            echo -n "${valid_arr[$i]}"
+        done
+        echo
+        echo
+    fi
+done

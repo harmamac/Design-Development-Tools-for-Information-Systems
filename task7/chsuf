@@ -1,0 +1,58 @@
+
+if [ $# -ne 3 ]; then
+    echo "Usage: $0 directory old_suffix new_suffix"
+    exit 1
+fi
+
+dirpath="$1"
+old_suffix="$2"
+new_suffix="$3"
+
+if [ ! -d "$dirpath" ]; then
+    echo "Error: $dirpath is not a directory"
+    exit 1
+fi
+
+if [[ ! "$old_suffix" =~ ^\. ]]; then
+    old_suffix=".$old_suffix"
+fi
+if [[ ! "$new_suffix" =~ ^\. ]]; then
+    new_suffix=".$new_suffix"
+fi
+
+validate_suffix() {
+    local suffix="$1"
+    if [[ ! "$suffix" =~ ^\.[^.]+$ ]]; then
+        echo "Error: Invalid suffix '$suffix'. Suffix must start with dot and contain no other dots"
+        exit 1
+    fi
+}
+
+validate_suffix "$old_suffix"
+validate_suffix "$new_suffix"
+
+find "$dirpath" -type f | while read -r filepath; do
+    filename=$(basename "$filepath")
+    dirname=$(dirname "$filepath")
+        if [[ "$filename" == .* ]]; then
+        temp="${filename#.}"
+        if [[ "$temp" == *.* ]]; then
+            actual_suffix=".${temp##*.}"
+        else
+            actual_suffix=""
+        fi
+    else
+        if [[ "$filename" == *.* ]]; then
+            actual_suffix=".${filename##*.}"
+        else
+            actual_suffix=""
+        fi
+    fi
+    
+    if [ "$actual_suffix" = "$old_suffix" ]; then
+        newfilename="${filename%$old_suffix}$new_suffix"
+        newfilepath="$dirname/$newfilename"
+        mv "$filepath" "$newfilepath"
+        echo "Renamed: $filepath -> $newfilepath"
+    fi
+done

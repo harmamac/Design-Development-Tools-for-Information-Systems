@@ -1,0 +1,42 @@
+
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 directory"
+    exit 1
+fi
+
+dirpath="$1"
+
+if [ ! -d "$dirpath" ]; then
+    echo "Error: $dirpath is not a directory"
+    exit 1
+fi
+
+declare -A suffix_count
+
+while IFS= read -r filepath; do
+    filename=$(basename "$filepath")
+    
+    if [[ "$filename" == .* ]]; then
+        temp="${filename#.}"
+        if [[ "$temp" == *.* ]]; then
+            actual_suffix=".${temp##*.}"
+        else
+            actual_suffix="no suffix"
+        fi
+    else
+        if [[ "$filename" == *.* ]]; then
+            actual_suffix=".${filename##*.}"
+        else
+            actual_suffix="no suffix"
+        fi
+    fi
+    
+    ((suffix_count[$actual_suffix]++))
+    
+done < <(find "$dirpath" -type f)
+
+for suffix in "${!suffix_count[@]}"; do
+    echo "${suffix_count[$suffix]} $suffix"
+done | sort -rn | while read count suffix; do
+    echo "$suffix: $count"
+done

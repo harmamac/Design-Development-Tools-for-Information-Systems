@@ -1,0 +1,24 @@
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 directory"
+    exit 1
+fi
+
+dirpath="$1"
+
+if [ ! -d "$dirpath" ]; then
+    echo "Error: $dirpath is not a directory"
+    exit 1
+fi
+
+user_name=$(whoami)
+date=$(date -I)
+
+for filepath in "$dirpath"/*.txt; do
+    if [ -f "$filepath" ]; then
+        temp_file=$(mktemp)
+        echo "Approved $user_name $date" > "$temp_file"
+        cat "$filepath" >> "$temp_file"
+        mv "$temp_file" "$filepath"
+        echo "Processed: $filepath"
+    fi
+done

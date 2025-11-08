@@ -1,0 +1,95 @@
+set -u
+
+trap 'echo -e "\nЧтобы выйти, введите \"q\" или \"Q\". Игра продолжается...";' SIGINT
+
+
+gen_secret() {
+  local digits=(0 1 2 3 4 5 6 7 8 9) pick i tmp idx
+  local secret=""
+  while :; do
+    idx=$(( RANDOM % 10 ))
+    pick=${digits[$idx]}
+    [[ "$pick" -ne 0 ]] && { secret="$pick"; break; }
+  done
+  digits=( "${digits[@]:0:$idx}" "${digits[@]:$((idx+1))}" )
+  for ((i=0; i<3; i++)); do
+    local n=${#digits[@]}
+    idx=$(( RANDOM % n ))
+    pick=${digits[$idx]}
+    secret+="$pick"
+    digits=( "${digits[@]:0:$idx}" "${digits[@]:$((idx+1))}" )
+  done
+  echo "$secret"
+}
+
+is_valid_guess() {
+  local s="$1"
+  [[ "$s" =~ ^[0-9]{4}$ ]] || return 1
+  [[ "${s:0:1}" != "0" ]] || return 1
+  local a="${s:0:1}" b="${s:1:1}" c="${s:2:1}" d="${s:3:1}"
+  [[ "$a" != "$b" && "$a" != "$c" && "$a" != "$d" && "$b" != "$c" && "$b" != "$d" && "$c" != "$d" ]]
+}
+
+
+cows_bulls() {
+  local guess="$1" secret="$2"
+  local bulls=0 cows=0 i j
+  for ((i=0; i<4; i++)); do
+    if [[ "${guess:i:1}" == "${secret:i:1}" ]]; then
+      ((bulls++))
+    else
+      for ((j=0; j<4; j++)); do
+        if (( i != j )) && [[ "${guess:i:1}" == "${secret:j:1}" ]]; then
+          ((cows++))
+          break
+        fi
+      done
+    fi
+  done
+  echo "$cows $bulls"
+}
+
+
+secret="$(gen_secret)"
+attempt=1
+history=()
+
+cat <<'BANNER'
+********************************************************************************
+* Я загадал 4-значное число с неповторяющимися цифрами. На каждом ходу делайте *
+* попытку отгадать загаданное число. Попытка - это 4-значное число с           *
+* неповторяющимися цифрами.                                                    *
+********************************************************************************
+BANNER
+
+while :; do
+  read -r -p "Попытка ${attempt}: " input || { echo; continue; }
+
+  if [[ "$input" == "q" || "$input" == "Q" ]]; then
+    exit 1
+  fi
+
+  if ! is_valid_guess "$input"; then
+    echo "Ошибка: введите 4-значное число с неповторяющимися цифрами (или q/Q для выхода)."
+    continue
+  fi
+
+  read -r cows bulls < <(cows_bulls "$input" "$secret")
+
+  echo "Коров - ${cows}, Быков - ${bulls}"
+  echo
+
+  history+=( "${attempt}. ${input} (Коров - ${cows} Быков - ${bulls})" )
+  echo "История ходов:"
+  for line in "${history[@]}"; do
+    echo "$line"
+  done
+  echo
+
+  if (( bulls == 4 )); then
+    echo "Вы угадали загаданное число ${secret}! Поздравляю!"
+    exit 0
+  fi
+
+  ((attempt++))
+done

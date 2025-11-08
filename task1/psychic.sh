@@ -1,11 +1,7 @@
-#!/usr/bin/env bash
-# Assignment 1: "Psychic" — Bash script
-
 step=1
 total=0
 hits=0
 
-# Arrays to store last 10 generated numbers and whether they were hits (1) or not (0)
 declare -a nums=()
 declare -a hitflags=()
 
@@ -13,7 +9,6 @@ GREEN="\e[32m"
 RESET="\e[0m"
 
 print_last_numbers() {
-  # Print the last up-to-10 generated numbers, highlighting hits in green
   printf "Numbers: "
   local n=${#nums[@]}
   for (( i=0; i<n; i++ )); do
@@ -27,12 +22,10 @@ print_last_numbers() {
 }
 
 while true; do
-  # Generate the number for this step
   gen=$(( RANDOM % 10 ))
 
   echo "Step: $step"
 
-  # Read & validate input
   while true; do
     read -rp "Please enter number from 0 to 9 (q - quit): " input
     if [[ "$input" == "q" ]]; then
@@ -44,7 +37,6 @@ while true; do
     fi
   done
 
-  # Update totals and determine hit/miss
   (( total += 1 ))
   if [[ "$input" -eq "$gen" ]]; then
     echo "Hit! My number: $gen"
@@ -55,7 +47,6 @@ while true; do
     hitflag=0
   fi
 
-  # Maintain rolling window of last 10 numbers
   nums+=( "$gen" )
   hitflags+=( "$hitflag" )
   if (( ${#nums[@]} > 10 )); then
@@ -63,7 +54,6 @@ while true; do
     hitflags=( "${hitflags[@]: -10}" )
   fi
 
-  # Compute percentages (rounded)
   hitpct=$(( (hits * 100 + total / 2) / total ))
   misspct=$(( 100 - hitpct ))
   echo "Hit: ${hitpct}% Miss: ${misspct}%"
